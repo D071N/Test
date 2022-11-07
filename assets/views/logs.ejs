@@ -5,9 +5,14 @@
 
 
 <body>
+    <script>
+        gtag('event', 'screen_view', {
+            'screen_name': 'logs',
+            'app_name': 'Fatrat'
+        });
+    </script>
     <div class="ui container">
         <% include partials/header.ejs %>
-        <% include partials/disclaimer.ejs %> 
         <div class="ui segment">
             <div class="logs">
                 <% logs.forEach((log) => { %>
